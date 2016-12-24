@@ -27,21 +27,27 @@ def read_form(reader):
     token = reader.peek()
     if token == "(":
         return read_list(reader)
+    elif token == "[":
+        return read_list(reader, "[")
+    elif token == "{":
+        return read_list(reader, "{")
     else:
         return read_atom(reader)
 
-def read_list(reader):
+def read_list(reader, startswith="("):
     reader.next()
     tokens = []
     while True:
-        try:
-            token = reader.peek()
-        except IndexError:
-            print("Expected ')', got EOF")
-            return
-        if token == ")":
+        token = reader.peek()
+        if token == ")" and startswith == "(":
             reader.next()
-            return tokens
+            return LinkedList(tokens)
+        elif token == "]" and startswith == "[":
+            reader.next()
+            return Vector(tokens)
+        elif token == "}" and startswith == "{":
+            reader.next()
+            return HashMap(tokens)
         else:
             tokens.append(read_form(reader))
 
@@ -50,21 +56,26 @@ def read_atom(reader):
     if isint(token):
         return int(token)
     elif token == "'":
-        return [Quote(), read_form(reader)]
+        return Quote(read_form(reader))
     elif token == "`":
-        return [QuasiQuote(), read_form(reader)]
+        return QuasiQuote(read_form(reader))
     elif token == "~":
-        return [UnQuote(), read_form(reader)]
+        return UnQuote(read_form(reader))
     elif token == "~@":
-        return [SpliceUnquote(), read_form(reader)]
+        return SpliceUnquote(read_form(reader))
+    elif token == "@":
+        return Deref(read_form(reader))
+    elif token[0] == '"' and token[-1] == '"':
+        #TODO Better error handling
+        return String(token)
     elif token == "true":
         return True
     elif token == "false":
         return False
     elif token == "nil":
-        return None
+        return Nil()
     else:
-        return token
+        return Token(token)
 
 def isint(int_string):
     try:
