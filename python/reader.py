@@ -54,7 +54,7 @@ def read_list(reader, startswith="("):
 def read_atom(reader):
     token = reader.next()
     if isint(token):
-        return int(token)
+        return Integer(token)
     elif token == "'":
         return Quote(read_form(reader))
     elif token == "`":
