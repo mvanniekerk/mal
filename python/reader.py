@@ -75,7 +75,7 @@ def read_atom(reader):
     elif token == "nil":
         return Nil()
     else:
-        return Token(token)
+        return Symbol(token)
 
 def isint(int_string):
     try:
