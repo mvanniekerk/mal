@@ -37,93 +37,83 @@ class Deref(Token):
     def __str__(self):
         return "(deref " + str(self.content) + ")"
 
-class LinkedList(Token):
-    def __init__(self, li):
-        self.li = li
-
+class LinkedList(list, Token):
     def EVAL(self, env):
-        if self.li == []:
+        if self == []:
             return self
         else:
-            if self.li[0].content == "def!":
-                value = self.li[2].EVAL(env)
-                env.set(self.li[1].content, value)
+            if self[0].content == "def!":
+                value = self[2].EVAL(env)
+                env.set(self[1].content, value)
                 return value
-            elif self.li[0].content == "let*":
+            elif self[0].content == "let*":
                 new_env = Env(env)
-                env_list = self.li[1].li
+                env_list = self[1]
                 for i in range(0, len(env_list), 2):
                     key = env_list[i].content
                     value = env_list[i+1].EVAL(new_env)
                     new_env.set(key, value)
-                return self.li[2].EVAL(new_env)
+                return self[2].EVAL(new_env)
             else:
                 new_list = self.eval_ast(env)
                 return new_list[0](*new_list[1:])
 
     def eval_ast(self, env):
-        return [t.EVAL(env) for t in self.li]
+        return [t.EVAL(env) for t in self]
 
     def __str__(self):
         return_str = ""
-        for el in self.li:
+        for el in self:
             return_str += " " + str(el)
         return "(" + return_str[1:] + ")"
 
-class Vector(Token):
-    def __init__(self, li):
-        self.li = li
-
+class Vector(list, Token):
     def eval_ast(self, env):
-        return Vector([t.EVAL(env) for t in self.li])
+        return Vector([t.EVAL(env) for t in self])
 
     def __str__(self):
         return_str = ""
-        for el in self.li:
+        for el in self:
             return_str += " " + str(el)
         return "[" + return_str[1:] + "]"
 
-class HashMap(Token):
+class HashMap(dict, Token):
     def __init__(self, li):
         if isinstance(li, list):
-            self.di = {li[i]:li[i+1] for i in range(0,len(li),2)}
+            di = {li[i]:li[i+1] for i in range(0,len(li),2)}
         elif isinstance(li, dict):
-            self.di = li
+            di = li
+        super().__init__(di)
 
     def eval_ast(self, env):
-        return HashMap({k : v.EVAL(env) for k, v in self.di.items()})
+        return HashMap({k : v.EVAL(env) for k, v in self.items()})
 
     def __str__(self):
         returnstr = ""
-        for k, v in self.di.items():
+        for k, v in self.items():
             returnstr += " " + str(k) + " " + str(v)
         return "{" + returnstr[1:] + "}"
 
-class String(Token):
+class String(str, Token):
     def __init__(self, quote_string):
-        self.str = quote_string[1:-1]
+        s = quote_string[1:-1]
+        super().__init__(s)
 
     def __str__(self):
-        return '"' + self.str + '"'
+        return '"' + self.content + '"'
 
-class Integer(Token):
-    def __init__(self, content):
-        self.content = int(content)
-
+class Integer(int, Token):
     def __add__(self, i):
-        return Integer(self.content + i.content)
+        return Integer(super().__add__(i))
 
     def __sub__(self, i):
-        return Integer(self.content - i.content)
+        return Integer(super().__sub__(i))
 
     def __mul__(self, i):
-        return Integer(self.content * i.content)
+        return Integer(super().__mul__(i))
 
     def __floordiv__(self, i):
-        return Integer(self.content / i.content)
-
-    def __str__(self):
-        return str(self.content)
+        return Integer(super().__floordiv__(i))
 
 class Nil(Token):
     def __init__(self):
