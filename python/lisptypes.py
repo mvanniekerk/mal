@@ -10,6 +10,9 @@ class Token:
     def eval_ast(self, env):
         return self
 
+    def __bool__(self):
+        return True
+
     def __str__(self):
         return self.content
 
@@ -38,8 +41,12 @@ class Deref(Token):
         return "(deref " + str(self.content) + ")"
 
 class LinkedList(list, Token):
+    def __init__(self, *args, **kwargs):
+        super(LinkedList, self).__init__(*args, **kwargs)
+        self.content = self
+
     def EVAL(self, env):
-        if self == []:
+        if len(self) == 0:
             return self
         else:
             if self[0].content == "def!":
@@ -54,9 +61,30 @@ class LinkedList(list, Token):
                     value = env_list[i+1].EVAL(new_env)
                     new_env.set(key, value)
                 return self[2].EVAL(new_env)
+            elif self[0].content == "do":
+                ev = [ast.EVAL(env) for ast in self[1:]]
+                return ev[-1]
+            elif self[0].content == "if":
+                cond = self[1].EVAL(env)
+                if cond:
+                    return self[2].EVAL(env)
+                else:
+                    if len(self) > 3:
+                        return self[3].EVAL(env)
+                    else:
+                        return Nil()
+            elif self[0].content == "fn*":
+                def function(*args):
+                    new_env = Env(env, [s.content for s in self[1]], args)
+                    return self[2].EVAL(new_env)
+                return function
             else:
                 new_list = self.eval_ast(env)
                 return new_list[0](*new_list[1:])
+
+    def __eq__(self, other):
+        if isinstance(other, LinkedList) or isinstance(other, Vector):
+            return super().__eq__(other)
 
     def eval_ast(self, env):
         return [t.EVAL(env) for t in self]
@@ -70,6 +98,10 @@ class LinkedList(list, Token):
 class Vector(list, Token):
     def eval_ast(self, env):
         return Vector([t.EVAL(env) for t in self])
+
+    def __eq__(self, other):
+        if isinstance(other, Vector) or isinstance(other, LinkedList):
+            return super().__eq__(other)
 
     def __str__(self):
         return_str = ""
@@ -94,15 +126,31 @@ class HashMap(dict, Token):
             returnstr += " " + str(k) + " " + str(v)
         return "{" + returnstr[1:] + "}"
 
-class String(str, Token):
+class String(Token):
+    # TODO remove the need for this class
     def __init__(self, quote_string):
-        s = quote_string[1:-1]
-        super().__init__(s)
+        self.content = quote_string[1:-1]
+
+    def __eq__(self, other):
+        if isinstance(other, String):
+            return self.content == other.content
+
+    def __hash__(self):
+        return hash(self.content)
 
     def __str__(self):
         return '"' + self.content + '"'
 
+class Keyword(Token):
+    def __eq__(self, other):
+        if isinstance(other, Keyword):
+            return self.content == other.content
+
+    def __hash__(self):
+        return hash(self.content)
+
 class Integer(int, Token):
+    # TODO remove the need for this class
     def __add__(self, i):
         return Integer(super().__add__(i))
 
@@ -112,12 +160,34 @@ class Integer(int, Token):
     def __mul__(self, i):
         return Integer(super().__mul__(i))
 
+    def __bool__(self):
+        return True
+
     def __floordiv__(self, i):
         return Integer(super().__floordiv__(i))
+
+class Boolean(Token):
+    def __bool__(self):
+        return self.content
+
+    def __str__(self):
+        if self.content:
+            return "true"
+        else:
+            return "false"
 
 class Nil(Token):
     def __init__(self):
         pass
+
+    def __bool__(self):
+        return False
+
+    def __eq__(self, other):
+        return isinstance(other, Nil)
+
+    def __len__(self):
+        return 0
 
     def __str__(self):
         return "nil"

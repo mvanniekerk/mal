@@ -68,10 +68,12 @@ def read_atom(reader):
     elif token[0] == '"' and token[-1] == '"':
         #TODO Better error handling
         return String(token)
+    elif token[0] == ":":
+        return Keyword(token)
     elif token == "true":
-        return True
+        return Boolean(True)
     elif token == "false":
-        return False
+        return Boolean(False)
     elif token == "nil":
         return Nil()
     else:
